@@ -71,7 +71,7 @@ class TrozIOClient extends GuzzleClient
 
         $file = 'troz-io-' . str_replace('.', '_', $config['version']) . '.php';
 
-        // Create the new Keen IO Client with our Configuration
+        // Create the new Troz IO Client with our Configuration
         return new self(
             new Client($config),
             new Description(include __DIR__ . "/Resources/{$file}"),
@@ -147,7 +147,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Sets the Project Id used by the Keen IO Client
+     * Sets the Project Id used by the Troz IO Client
      *
      * @param string $projectId
      */
@@ -157,7 +157,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Gets the Project Id being used by the Keen IO Client
+     * Gets the Project Id being used by the Troz IO Client
      *
      * @return string|null Value of the ProjectId or NULL
      */
@@ -167,7 +167,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Sets the Organization Id used by the Keen IO Client
+     * Sets the Organization Id used by the Troz IO Client
      *
      * @param string $organizationId
      */
@@ -177,7 +177,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Gets the Organization Id being used by the Keen IO Client
+     * Gets the Organization Id being used by the Troz IO Client
      *
      * @return string|null Value of the OrganizationId or NULL
      */
@@ -187,7 +187,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Sets the API Write Key used by the Keen IO Client
+     * Sets the API Write Key used by the Troz IO Client
      *
      * @param string $writeKey
      */
@@ -197,7 +197,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Gets the API Write Key being used by the Keen IO Client
+     * Gets the API Write Key being used by the Troz IO Client
      *
      * @return string|null Value of the WriteKey or NULL
      */
@@ -217,7 +217,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Sets the API Read Key used by the Keen IO Client
+     * Sets the API Read Key used by the Troz IO Client
      *
      * @param string $readKey
      */
@@ -227,7 +227,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Gets the API Read Key being used by the Keen IO Client
+     * Gets the API Read Key being used by the Troz IO Client
      *
      * @return string|null Value of the ReadKey or NULL
      */
@@ -247,7 +247,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Sets the API Master Key used by the Keen IO Client
+     * Sets the API Master Key used by the Troz IO Client
      *
      * @param string $masterKey
      */
@@ -257,7 +257,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Gets the API Master Key being used by the Keen IO Client
+     * Gets the API Master Key being used by the Troz IO Client
      *
      * @return string|null Value of the MasterKey or NULL
      */
@@ -267,7 +267,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Sets the API Version used by the Keen IO Client.
+     * Sets the API Version used by the Troz IO Client.
      * Changing the API Version will attempt to load a new Service Definition for that Version.
      *
      * @param string $version
@@ -278,7 +278,7 @@ class TrozIOClient extends GuzzleClient
     }
 
     /**
-     * Gets the Version being used by the Keen IO Client
+     * Gets the Version being used by the Troz IO Client
      *
      * @return string|null Value of the Version or NULL
      */
