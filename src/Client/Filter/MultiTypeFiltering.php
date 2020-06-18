@@ -21,6 +21,7 @@ namespace TrozIO\Client\Filter;
 /**
  * Some TrozIO parameters can either be string or array, and the encoding changes based on the type
  *
+ * @author  Michaël Gallego <mic.gallego@gmail.com>
  */
 class MultiTypeFiltering
 {

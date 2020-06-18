@@ -2,9 +2,9 @@
 
 namespace TrozIO\Client;
 
-use Guzzle\Common\Collection;
-use Guzzle\Service\Client;
-use Guzzle\Service\Description\ServiceDescription;
+use GuzzleHttp\Client;
+use GuzzleHttp\Command\Guzzle\Description;
+use GuzzleHttp\Command\Guzzle\GuzzleClient;
 use TrozIO\Exception\RuntimeException;
 
 /**
@@ -12,28 +12,38 @@ use TrozIO\Exception\RuntimeException;
  *
  * @package TrozIO\Client
  *
- * @method array getCollection(array $args = array()) {@command TrozIO getCollection}
+ * @method array getCollection(string $eventCollection, array $args = array()) {@command TrozIO getCollection}
  * @method array getCollections(array $args = array()) {@command TrozIO getCollections}
+ * @method array deleteCollection(array $args = array()) {@command TrozIO getProperty} *
  * @method array getResources(array $args = array()) {@command TrozIO getResources}
  * @method array getProjects(array $args = array()) {@command TrozIO getProjects}
  * @method array getProject(array $args = array()) {@command TrozIO getProject}
- * @method array getProperty(array $args = array()) {@command TrozIO getProperty}
+ * @method array getProperty(string $eventCollection, array $args = array()) {@command TrozIO getProperty}
+ * @method array getSavedQueries(array $args = array()) {@command TrozIO getProperty}
+ * @method array getSavedQuery(array $args = array()) {@command TrozIO getProperty}
+ * @method array createSavedQuery(array $args = array()) {@command TrozIO getProperty}
+ * @method array deleteSavedQuery(array $args = array()) {@command TrozIO getProperty}
+ * @method array getSavedQueryResults(array $args = array()) {@command TrozIO getProperty}
  * @method array getEventSchemas(array $args = array()) {@command TrozIO getEventSchemas}
- * @method array deleteEvents(array $args = array()) {@command TrozIO deleteEvents}
- * @method array deleteEventProperties(array $args = array()) {@command TrozIO deleteEventProperties}
- * @method array count(array $args = array()) {@command TrozIO count}
- * @method array countUnique(array $args = array()) {@command TrozIO countUnique}
- * @method array minimum(array $args = array()) {@command TrozIO minimum}
- * @method array maximum(array $args = array()) {@command TrozIO maximum}
- * @method array average(array $args = array()) {@command TrozIO average}
- * @method array sum(array $args = array()) {@command TrozIO sum}
- * @method array selectUnique(array $args = array()) {@command TrozIO selectUnique}
- * @method array funnel(array $args = array()) {@command TrozIO funnel}
- * @method array multiAnalysis(array $args = array()) {@command TrozIO multiAnalysis}
- * @method array extraction(array $args = array()) {@command TrozIO extraction}
+ * @method array deleteEvents(string $eventCollection, array $args = array()) {@command TrozIO deleteEvents}
+ * @method array deleteEventProperties(string $eventCollection, array $args = array()))
+ * {@command TrozIO deleteEventProperties}
+ * @method array count(string $eventCollection, array $args = array())) {@command TrozIO count}
+ * @method array countUnique(string $eventCollection, array $args = array()) {@command TrozIO countUnique}
+ * @method array minimum(string $eventCollection, array $args = array()) {@command TrozIO minimum}
+ * @method array maximum(string $eventCollection, array $args = array()) {@command TrozIO maximum}
+ * @method array average(string $eventCollection, array $args = array()) {@command TrozIO average}
+ * @method array sum(string $eventCollection, array $args = array()) {@command TrozIO sum}
+ * @method array selectUnique(string $eventCollection, array $args = array()) {@command TrozIO selectUnique}
+ * @method array funnel(string $eventCollection, array $args = array()) {@command TrozIO funnel}
+ * @method array multiAnalysis(string $eventCollection, array $args = array()) {@command TrozIO multiAnalysis}
+ * @method array extraction(string $eventCollection, array $args = array()) {@command TrozIO extraction}
  */
-class TrozIOClient extends Client
+class TrozIOClient extends GuzzleClient
 {
+
+    const VERSION = '2.6.0';
+
     /**
      * Factory to create new TrozIOClient instance.
      *
@@ -44,37 +54,34 @@ class TrozIOClient extends Client
     public static function factory($config = array())
     {
         $default = array(
-            'baseUrl'   => 'https://api.troz.io/{version}/',
-            'version'   => '4.0',
-            'masterKey' => null,
-            'writeKey'  => null,
-            'readKey'   => null,
-            'projectId' => null,
+            'masterKey'       => null,
+            'writeKey'        => null,
+            'readKey'         => null,
+            'projectId'       => null,
+            'organizationKey' => null,
+            'organizationId'  => null,
+            'version'         => '4.0',
+            'headers'         => array(
+                'Keen-Sdk' => 'php-' . self::VERSION,
+            ),
         );
 
         // Create client configuration
-        $config = Collection::fromConfig($config, $default);
+        $config = self::parseConfig($config, $default);
 
-        // Because each API Resource uses a separate type of API Key, we need to expose them all in
-        // `commands.params`. Doing it this way allows the Service Definitions to set what API Key is used.
-        $parameters = array();
-        foreach (array('masterKey', 'writeKey', 'readKey') as $key) {
-            $parameters[$key] = $config->get($key);
-        }
+        $file = 'troz-io-' . str_replace('.', '_', $config['version']) . '.php';
 
-        $config->set('command.params', $parameters);
-
-        // Create the new Troz IO Client with our Configuration
-        $client = new self($config->get('baseUrl'), $config);
-
-        // Set the Service Definition from the versioned file
-        $file = 'troz-io-' . str_replace('.', '_', $client->getConfig('version')) . '.php';
-        $client->setDescription(ServiceDescription::factory(__DIR__ . "/Resources/{$file}"));
-
-        // Set the content type header to use "application/json" for all requests
-        $client->setDefaultOption('headers', array('Content-Type' => 'application/json'));
-
-        return $client;
+        // Create the new Keen IO Client with our Configuration
+        return new self(
+            new Client($config),
+            new Description(include __DIR__ . "/Resources/{$file}"),
+            null,
+            function ($arg) {
+                return json_decode($arg->getBody(), true);
+            },
+            null,
+            $config
+        );
     }
 
     /**
@@ -88,17 +95,21 @@ class TrozIOClient extends Client
      *
      * @return mixed Returns the result of the command
      */
-    public function __call($method, $args)
+    public function __call($method, array $args)
     {
-        if (isset($args[0]) && is_string($args[0])) {
-            $args[0] = array('event_collection' => $args[0]);
+        return parent::__call($method, array($this->combineEventCollectionArgs($args)));
+    }
 
-            if (isset($args[1]) && is_array($args[1])) {
-                $args[0] = array_merge($args[1], $args[0]);
-            }
-        }
+    public function getCommand($name, array $params = [])
+    {
+        $params['projectId']       = $this->getConfig('projectId');
+        $params['masterKey']       = $this->getConfig('masterKey');
+        $params['writeKey']        = $this->getKeyForWriting();
+        $params['readKey']         = $this->getKeyForReading();
+        $params['organizationId']  = $this->getConfig('organizationId');
+        $params['organizationKey'] = $this->getConfig('organizationKey');
 
-        return $this->getCommand($method, isset($args[0]) ? $args[0] : array())->getResult();
+        return parent::getCommand($name, $params);
     }
 
     /**
@@ -108,12 +119,15 @@ class TrozIOClient extends Client
      * @param  array  $event      Event data to store
      * @return mixed
      */
-    public function addEvent($collection, $event = array())
+    public function addEvent($collection, array $event = array())
     {
-        return $this->getCommand('addEvent', array(
-            'event_collection' => $collection,
-            'event_data'       => $event,
-        ))->getResult();
+        $event['event_collection'] = $collection;
+        $event['projectId']        = $this->getConfig('projectId');
+        $event['writeKey']         = $this->getKeyForWriting();
+
+        $command = parent::getCommand('addEvent', $event);
+
+        return $this->execute($command);
     }
 
     /**
@@ -122,23 +136,28 @@ class TrozIOClient extends Client
      * @param  array $events Event data to store
      * @return mixed
      */
-    public function addEvents($events = array())
+    public function addEvents(array $events = array())
     {
-        return $this->getCommand('addEvents', array('event_data' => $events))->getResult();
+        $events['projectId'] = $this->getConfig('projectId');
+        $events['writeKey']  = $this->getKeyForWriting();
+
+        $command = parent::getCommand('addEvents', $events);
+
+        return $this->execute($command);
     }
 
     /**
-     * Sets the Project Id used by the Troz IO Client
+     * Sets the Project Id used by the Keen IO Client
      *
      * @param string $projectId
      */
     public function setProjectId($projectId)
     {
-        $this->getConfig()->set('projectId', $projectId);
+        $this->setConfig('projectId', $projectId);
     }
 
     /**
-     * Gets the Project Id being used by the Troz IO Client
+     * Gets the Project Id being used by the Keen IO Client
      *
      * @return string|null Value of the ProjectId or NULL
      */
@@ -148,23 +167,37 @@ class TrozIOClient extends Client
     }
 
     /**
-     * Sets the API Write Key used by the Troz IO Client
+     * Sets the Organization Id used by the Keen IO Client
+     *
+     * @param string $organizationId
+     */
+    public function setOrganizationId($organizationId)
+    {
+        $this->setConfig('organizationId', $organizationId);
+    }
+
+    /**
+     * Gets the Organization Id being used by the Keen IO Client
+     *
+     * @return string|null Value of the OrganizationId or NULL
+     */
+    public function getOrganizationId()
+    {
+        return $this->getConfig('organizationId');
+    }
+
+    /**
+     * Sets the API Write Key used by the Keen IO Client
      *
      * @param string $writeKey
      */
     public function setWriteKey($writeKey)
     {
-        $this->getConfig()->set('writeKey', $writeKey);
-
-        // Add API Read Key to `command.params`
-        $params             = $this->getConfig('command.params');
-        $params['writeKey'] = $writeKey;
-
-        $this->getConfig()->set('command.params', $params);
+        $this->setConfig('writeKey', $writeKey);
     }
 
     /**
-     * Gets the API Write Key being used by the Troz IO Client
+     * Gets the API Write Key being used by the Keen IO Client
      *
      * @return string|null Value of the WriteKey or NULL
      */
@@ -174,23 +207,27 @@ class TrozIOClient extends Client
     }
 
     /**
-     * Sets the API Read Key used by the Troz IO Client
+     * Gets a key which can be used for API Write requests
+     *
+     * @return string|null Value of the key or NULL
+     */
+    public function getKeyForWriting()
+    {
+        return $this->getWriteKey() ?: $this->getMasterKey();
+    }
+
+    /**
+     * Sets the API Read Key used by the Keen IO Client
      *
      * @param string $readKey
      */
     public function setReadKey($readKey)
     {
-        $this->getConfig()->set('readKey', $readKey);
-
-        // Add API Read Key to `command.params`
-        $params            = $this->getConfig('command.params');
-        $params['readKey'] = $readKey;
-
-        $this->getConfig()->set('command.params', $params);
+        $this->setConfig('readKey', $readKey);
     }
 
     /**
-     * Gets the API Read Key being used by the Troz IO Client
+     * Gets the API Read Key being used by the Keen IO Client
      *
      * @return string|null Value of the ReadKey or NULL
      */
@@ -200,23 +237,27 @@ class TrozIOClient extends Client
     }
 
     /**
-     * Sets the API Master Key used by the Troz IO Client
+     * Gets a key which can be used for API Read requests
+     *
+     * @return string|null Value of the key or NULL
+     */
+    public function getKeyForReading()
+    {
+        return $this->getReadKey() ?: $this->getMasterKey();
+    }
+
+    /**
+     * Sets the API Master Key used by the Keen IO Client
      *
      * @param string $masterKey
      */
     public function setMasterKey($masterKey)
     {
-        $this->getConfig()->set('masterKey', $masterKey);
-
-        // Add API Master Key to `command.params`
-        $params              = $this->getConfig('command.params');
-        $params['masterKey'] = $masterKey;
-
-        $this->getConfig()->set('command.params', $params);
+        $this->setConfig('masterKey', $masterKey);
     }
 
     /**
-     * Gets the API Master Key being used by the Troz IO Client
+     * Gets the API Master Key being used by the Keen IO Client
      *
      * @return string|null Value of the MasterKey or NULL
      */
@@ -226,22 +267,18 @@ class TrozIOClient extends Client
     }
 
     /**
-     * Sets the API Version used by the Troz IO Client.
+     * Sets the API Version used by the Keen IO Client.
      * Changing the API Version will attempt to load a new Service Definition for that Version.
      *
      * @param string $version
      */
     public function setVersion($version)
     {
-        $this->getConfig()->set('version', $version);
-
-        /* Set the Service Definition from the versioned file */
-        $file = 'troz-io-' . str_replace('.', '_', $this->getConfig('version')) . '.php';
-        $this->setDescription(ServiceDescription::factory(__DIR__ . "/Resources/{$file}"));
+        $this->setConfig('version', $version);
     }
 
     /**
-     * Gets the Version being used by the Troz IO Client
+     * Gets the Version being used by the Keen IO Client
      *
      * @return string|null Value of the Version or NULL
      */
@@ -261,11 +298,10 @@ class TrozIOClient extends Client
      *
      * @param array  $filters           What filters to encode into a scoped key
      * @param array  $allowedOperations What operations the generated scoped key will allow
-     * @param int    $source
      * @return string
      * @throws RuntimeException If no master key is set
      */
-    public function createScopedKey($filters, $allowedOperations, $source = MCRYPT_DEV_URANDOM)
+    public function createScopedKey($filters, $allowedOperations)
     {
         if (!$masterKey = $this->getMasterKey()) {
             throw new RuntimeException('A master key is needed to create a scoped key');
@@ -277,12 +313,32 @@ class TrozIOClient extends Client
             $options['allowed_operations'] = $allowedOperations;
         }
 
-        $optionsJson = $this->padString(json_encode($options));
+        $apiKey = pack('H*', $masterKey);
 
-        $ivLength = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC);
-        $iv       = mcrypt_create_iv($ivLength, $source);
+        $opensslOptions = \OPENSSL_RAW_DATA;
 
-        $encrypted = mcrypt_encrypt(MCRYPT_RIJNDAEL_128, $masterKey, $optionsJson, MCRYPT_MODE_CBC, $iv);
+        $optionsJson = json_encode($options);
+
+        /**
+         * Use the old block size and hex string input if using a legacy master key.
+         * Old block size was 32 bytes and old master key was 32 hex characters in length.
+         */
+
+        if (strlen($masterKey) == 32) {
+            $apiKey = $masterKey;
+
+            // Openssl's built-in PKCS7 padding won't use the 32 bytes block size, so apply it in userland
+            // and use OPENSSL zero padding (no-op as already padded)
+            $opensslOptions |= \OPENSSL_ZERO_PADDING;
+            $optionsJson = $this->padString($optionsJson, 32);
+        }
+
+        $cipher = 'AES-256-CBC';
+
+        $ivLength = openssl_cipher_iv_length($cipher);
+        $iv       = random_bytes($ivLength);
+
+        $encrypted = openssl_encrypt($optionsJson, $cipher, $apiKey, $opensslOptions, $iv);
 
         $ivHex        = bin2hex($iv);
         $encryptedHex = bin2hex($encrypted);
@@ -321,20 +377,40 @@ class TrozIOClient extends Client
             throw new RuntimeException('A master key is needed to decrypt a scoped key');
         }
 
-        $ivLength = mcrypt_get_iv_size(MCRYPT_RIJNDAEL_128, MCRYPT_MODE_CBC) * 2;
+        $apiKey = pack('H*', $masterKey);
+
+        $opensslOptions = \OPENSSL_RAW_DATA;
+        $paddedManually = false;
+
+        // Use the old hex string input if using a legacy master key
+        if (strlen($masterKey) == 32) {
+            $apiKey = $masterKey;
+            // Openssl's built-in PKCS7 padding won't use the 32 bytes block size, so apply it in userland
+            // and use OPENSSL zero padding (no-op as already padded)
+            $opensslOptions |= \OPENSSL_ZERO_PADDING;
+            $paddedManually = true;
+        }
+
+        $cipher = 'AES-256-CBC';
+
+        $ivLength = openssl_cipher_iv_length($cipher) * 2;
         $ivHex    = substr($scopedKey, 0, $ivLength);
 
         $encryptedHex = substr($scopedKey, $ivLength);
 
-        $resultPadded = mcrypt_decrypt(
-            MCRYPT_RIJNDAEL_128,
-            $masterKey,
+        $result = openssl_decrypt(
             pack('H*', $encryptedHex),
-            MCRYPT_MODE_CBC,
+            $cipher,
+            $apiKey,
+            $opensslOptions,
             pack('H*', $ivHex)
         );
 
-        return json_decode($this->unpadString($resultPadded), true);
+        if ($paddedManually) {
+            $result = $this->unpadString($result);
+        }
+
+        return json_decode($result, true);
     }
 
     /**
@@ -349,5 +425,58 @@ class TrozIOClient extends Client
         $pad = ord($string[$len - 1]);
 
         return substr($string, 0, $len - $pad);
+    }
+
+    /**
+     * Attempt to parse config and apply defaults
+     *
+     * @param  array  $config
+     * @param  array  $default
+     *
+     * @return array Returns the updated config array
+     */
+    protected static function parseConfig($config, $default)
+    {
+        array_walk($default, function ($value, $key) use (&$config) {
+            if (empty($config[$key]) || !isset($config[$key])) {
+                $config[$key] = $value;
+            }
+        });
+
+        return $config;
+    }
+
+    /**
+     * Translate a set of args to merge a lone event_collection into
+     * an array with the other params
+     *
+     * @param array $args Arguments to be formatted
+     *
+     * @return array A single array with event_collection merged in
+     * @access private
+     */
+    private static function combineEventCollectionArgs(array $args)
+    {
+        $formattedArgs = array();
+
+        if (isset($args[0]) && is_string($args[0])) {
+            $formattedArgs['event_collection'] = $args[0];
+
+            if (isset($args[1]) && is_array($args[1])) {
+                $formattedArgs = array_merge($formattedArgs, $args[1]);
+            }
+        } elseif (isset($args[0]) && is_array($args[0])) {
+            $formattedArgs = $args[0];
+        }
+
+        return $formattedArgs;
+    }
+
+    public static function cleanQueryName($raw)
+    {
+        $filtered = str_replace(' ', '-', $raw);
+        $filtered = preg_replace("/[^A-Za-z0-9_\-]/", "", $filtered);
+
+        return $filtered;
     }
 }
