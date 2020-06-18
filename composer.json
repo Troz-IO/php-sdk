@@ -9,7 +9,7 @@
     "require": {
         "php":           ">=5.3.3",
         "ext-mcrypt":    "*",
-        "guzzle/guzzle": "~3.7"
+        "guzzlehttp/guzzle": "*"
     },
     "homepage": "http://troz.io",
     "autoload": {
