@@ -1,0 +1,26 @@
+{
+    "name": "troz-io/troz-io",
+    "description": "A PHP library for reporting events to the Troz IO API",
+    "type": "library",
+    "keywords": [
+        "troz io",
+        "analytics"
+    ],
+    "require": {
+        "php":           ">=5.3.3",
+        "ext-mcrypt":    "*",
+        "guzzle/guzzle": "~3.7"
+    },
+    "homepage": "http://troz.io",
+    "autoload": {
+        "psr-4": {
+            "TrozIO\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "Victor",
+            "email": "victor@cano.wtf"
+        }
+    ]
+}
