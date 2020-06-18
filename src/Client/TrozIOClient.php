@@ -62,7 +62,7 @@ class TrozIOClient extends GuzzleClient
             'organizationId'  => null,
             'version'         => '4.0',
             'headers'         => array(
-                'Keen-Sdk' => 'php-' . self::VERSION,
+                'Troz-Sdk' => 'php-' . self::VERSION,
             ),
         );
 
